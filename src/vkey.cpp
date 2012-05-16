@@ -84,10 +84,14 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	
 	if (keyObjectPtr != CcnxKeyObject::Null) {
 		ccn_charbuf *key = keyObjectPtr->getKey();
-		ccn_d2i_pubkey(key->buf, key->length);
+		pubkey = ccn_d2i_pubkey(key->buf, key->length);
+		bool verified = false;
+		if (pubkey != NULL) {
+			verified = (ccn_verify_signature((unsigned char *) ccnb, pco->offset[CCN_PCO_E], pco, pubkey) == 0);
+		}
 		ccn_charbuf_destroy(&key);
 		ccn_charbuf_destroy(&keyName);
-		return (ccn_verify_signature((unsigned char *) ccnb, pco->offset[CCN_PCO_E], pco, pubkey) == 0);
+		return verified;
 	}
 	
 	ccn_charbuf_destroy(&keyName);

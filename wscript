@@ -49,10 +49,10 @@ def build (bld):
 
     # Unit tests
     if bld.get_define('_TESTS'):
-        unittests = bld.program (target="tests",
+        unittests = bld.program (target="unittests",
                              source = bld.path.ant_glob(['tests/*.cpp']),
                              features=['cxx', 'cxxprogram'],
-                             use = 'BOOST_TEST vkey')
+                             use = 'BOOST BOOST_TEST vkey')
 
     #if bld.get_define ("HAVE_LOG4CXX"):
     #    libvkey.use += ' LOG4CXX'
