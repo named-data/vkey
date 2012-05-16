@@ -47,8 +47,6 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	ccn_charbuf *keyName = get_key_name(ccnb, pco);
 	std::string name = ccn_charbuf_as_string(keyName);
 	
-	ccn_pkey *pubkey = NULL;
-
 	// check keymap first
 	CcnxKeyObjectPtr keyObjectPtr = lookupKeyInKeyMap(name);
 	if (keyObjectPtr != CcnxKeyObject::Null) {
@@ -83,20 +81,18 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	}
 	
 	if (keyObjectPtr != CcnxKeyObject::Null) {
-		ccn_charbuf *key = keyObjectPtr->getKey();
-		pubkey = ccn_d2i_pubkey(key->buf, key->length);
 		bool verified = false;
+		ccn_pkey *pubkey = keyObjectPtr->getCcnPKey();
 		if (pubkey != NULL) {
 			verified = (ccn_verify_signature((unsigned char *) ccnb, pco->offset[CCN_PCO_E], pco, pubkey) == 0);
 		}
-		ccn_charbuf_destroy(&key);
+		ccn_pubkey_free(pubkey);
 		ccn_charbuf_destroy(&keyName);
 		return verified;
 	}
 	
 	ccn_charbuf_destroy(&keyName);
 	return false;
-
 }
 
 SigVerifier::SigVerifier(): m_dbManager(new SqliteKeyDBManager) {
@@ -143,13 +139,16 @@ SigVerifier::lookupKeyInNetwork(const ccn_charbuf *keyName) {
 	return CcnxOneTimeKeyFetcher::fetch(keyName);
 }
 
-CcnxKeyObject::CcnxKeyObject(const std::string keyName, const ccn_charbuf *key, time_t timestamp, int freshness): m_keyName(keyName), m_timestamp(timestamp), m_freshness(freshness) {
+CcnxKeyObject::CcnxKeyObject(const std::string keyName, const ccn_charbuf *key, time_t timestamp, int freshness): m_keyName(keyName), m_timestamp(timestamp), m_freshness(freshness), m_ccnPKey(NULL) {
 	m_key = ccn_charbuf_dup(key);
 }
 
 CcnxKeyObject::~CcnxKeyObject() {
 	if (m_key != NULL)
 		ccn_charbuf_destroy(&m_key);
+	
+	if (m_ccnPKey != NULL)
+		ccn_pubkey_free(m_ccnPKey);
 }
 
 std::string
@@ -169,16 +168,40 @@ CcnxKeyObject::expired() {
 	return (m_timestamp + m_freshness * 60 * 60 * 24 < now);
 }
 
+ccn_pkey *
+CcnxKeyObject::getCcnPKey() {
+	if (m_ccnPKey == NULL) {
+		ccn_charbuf *temp = this->getKey();	
+		m_ccnPKey = ccn_d2i_pubkey(temp->buf, temp->length);
+		ccn_charbuf_destroy(&temp);
+		// failed to generate pubkey
+		if (m_ccnPKey == NULL) {
+			return NULL;
+		}
+	}
+	int keySize = ccn_pubkey_size(m_ccnPKey);
+	ccn_pkey *pubkey = (ccn_pkey *)calloc(1, keySize);
+	memcpy(pubkey, m_ccnPKey, keySize);
+	return pubkey;
+}
+
 SqliteKeyDBManager::SqliteKeyDBManager() {
 	char *dbLoc = NULL;
 	dbLoc = std::getenv("DB_FILE");
 	m_dbFile = (dbLoc != NULL) ? dbLoc : std::getenv("HOME");
 	m_dbFile += "/.ccnx/.vkey.db";
 	
+#ifdef _DEBUG
+	m_tableName = "test_keys";
+#else
+	m_tableName = "trusted_keys";
+#endif 
+
 	m_tableReady = false;
 	sqlite3 *db;
 	if (sqlite3_open(m_dbFile.c_str(), &db) == SQLITE_OK) {
-		int rc = sqlite3_exec(db, "create table if not exists trusted_keys(name TEXT, key BLOB, timestamp INTEGER, valid_to INTEGER);", NULL, NULL, NULL);
+		std::string zSql = "create table if not exists " + m_tableName + "(name TEXT, key BLOB, timestamp INTEGER, valid_to INTEGER);";
+		int rc = sqlite3_exec(db, zSql.c_str(), NULL, NULL, NULL);
 		if (rc == SQLITE_OK) {
 			m_tableReady = true;
 		}
@@ -192,8 +215,8 @@ SqliteKeyDBManager::insert(const CcnxKeyObjectPtr keyObjectPtr) {
 		return false;
 
 	sqlite3_stmt *stmt;	
-	const char *zSql = "INSERT INTO trusted_keys VALUES(?,?,?,?);";
-	sqlite3_prepare_v2(db, zSql, -1, &stmt, NULL);
+	std::string zSql = "INSERT INTO " + m_tableName +" VALUES(?,?,?,?);";
+	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
 	std::string name = keyObjectPtr->getKeyName();
 	ccn_charbuf *key = keyObjectPtr->getKey();
 	sqlite3_bind_text(stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
@@ -216,8 +239,8 @@ SqliteKeyDBManager::query(const std::string keyName) {
 		return CcnxKeyObject::Null;
 
 	sqlite3_stmt *stmt;	
-	const char *zSql = "SELECT * FROM trusted_keys WHERE name == ?;";
-	sqlite3_prepare_v2(db, zSql, -1, &stmt, NULL);
+	std::string zSql = "SELECT * FROM " + m_tableName + " WHERE name == ?;";
+	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
 	sqlite3_bind_text(stmt, 1, keyName.c_str(), keyName.length(), SQLITE_STATIC);
 	if (sqlite3_step(stmt) == SQLITE_ROW) {
 		int size = sqlite3_column_bytes(stmt,1);
@@ -245,8 +268,8 @@ SqliteKeyDBManager::update() {
 	time_t now = time(NULL);
 
 	sqlite3_stmt *stmt;
-	const char *zSql = "DELETE FROM trusted_keys WHERE valid_to < ?;";
-	sqlite3_prepare_v2(db, zSql, -1, &stmt, NULL);
+	std::string zSql = "DELETE FROM " + m_tableName + " WHERE valid_to < ?;";
+	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, (int) now);
 	sqlite3_finalize(stmt);
 	sqlite3_close(db);

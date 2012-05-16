@@ -71,11 +71,15 @@ public:
 
 	std::string getKeyName();
 	// client is responsible to free the memory
+	// get key in ccn_charbuf format (network format)
 	ccn_charbuf *getKey();
 	time_t getTimestamp() {return m_timestamp;}
 	int getFreshness() {return m_freshness;}
 	// whether the associated key is expired
 	bool expired();
+	// ccn_pkey format for ccnx code to use
+	// client is responsible to free the memory
+	ccn_pkey *getCcnPKey();
 
 private:
 	std::string m_keyName;
@@ -86,6 +90,8 @@ private:
 	time_t m_timestamp;
 	// unit for freshness is day
 	int m_freshness;
+	// the ccn_pkey structure for ccn to use
+	ccn_pkey *m_ccnPKey;
 };
 
 class KeyDBManager {
@@ -110,6 +116,7 @@ private:
 
 private:
 	std::string m_dbFile;
+	std::string m_tableName;
 	bool m_tableReady;
 	sqlite3 *db;
 };
