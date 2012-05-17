@@ -10,7 +10,8 @@ using namespace std;
 using namespace VKey;
 using namespace boost;
 
-BOOST_AUTO_TEST_CASE(Sqlite3Test)
+BOOST_AUTO_TEST_CASE(KeyObjectTest)
 {
+//	CcnxKeyObjectPtr ptr(new CcnxKeyObject());	
 }
 

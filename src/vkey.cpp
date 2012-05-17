@@ -46,39 +46,8 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	
 	ccn_charbuf *keyName = get_key_name(ccnb, pco);
 	std::string name = ccn_charbuf_as_string(keyName);
-	
-	// check keymap first
-	CcnxKeyObjectPtr keyObjectPtr = lookupKeyInKeyMap(name);
-	if (keyObjectPtr != CcnxKeyObject::Null) {
-		if (keyObjectPtr->expired()) {
-			deleteKeyFromKeyMap(name);
-			keyObjectPtr = CcnxKeyObject::Null;
-		}
-	} else {
-		// next check the keyDB
-		keyObjectPtr = lookupKeyInKeyDB(name);
-		if (keyObjectPtr != CcnxKeyObject::Null) {
-			// no need to check whether expired or not
-			// we did the cleaning before lookup in DB
 
-			// store it to the cache so we don't need to check DB next time
-			addKeyToKeyMap(keyObjectPtr);
-		} else {
-			// finally, try to fetch from the network
-			keyObjectPtr = lookupKeyInNetwork(keyName);
-			if (keyObjectPtr != CcnxKeyObject::Null) {
-				// the key (not only the local copy) is expired
-				// there is no way to verify the signature
-				if (keyObjectPtr->expired()) {
-					ccn_charbuf_destroy(&keyName);
-					return false;
-				}
-				// store it to DB and cache
-				addKeyToKeyMap(keyObjectPtr);
-				addKeyToKeyDB(keyObjectPtr);
-			}
-		}
-	}
+	CcnxKeyObjectPtr keyObjectPtr = lookupKey(name);
 	
 	if (keyObjectPtr != CcnxKeyObject::Null) {
 		bool verified = false;
@@ -116,9 +85,6 @@ SigVerifier::deleteKeyFromKeyMap(const std::string name) {
 }
 
 CcnxKeyObjectPtr
-CcnxKeyObject::Null;
-
-CcnxKeyObjectPtr
 SigVerifier::lookupKeyInKeyMap(std::string name) {
 	KeyMap::iterator it = m_keyMap.find(name);
 	if (it == m_keyMap.end()) {
@@ -138,6 +104,54 @@ CcnxKeyObjectPtr
 SigVerifier::lookupKeyInNetwork(const ccn_charbuf *keyName) {
 	return CcnxOneTimeKeyFetcher::fetch(keyName);
 }
+
+CcnxKeyObjectPtr
+SigVerifier::lookupKey(std::string name) {
+	// check keymap first
+	CcnxKeyObjectPtr keyObjectPtr = lookupKeyInKeyMap(name);
+	if (keyObjectPtr != CcnxKeyObject::Null) {
+		if (keyObjectPtr->expired()) {
+			// get rid of expired key
+			deleteKeyFromKeyMap(name);
+		}
+		else {
+			return keyObjectPtr;
+		}
+	}
+	
+	// next check the keyDB
+	keyObjectPtr = lookupKeyInKeyDB(name);
+	if (keyObjectPtr != CcnxKeyObject::Null) {
+		// no need to check whether expired or not
+		// we did the cleaning before lookup in DB
+
+		// store it to the cache so we don't need to check DB next time
+		addKeyToKeyMap(keyObjectPtr);
+		return keyObjectPtr;
+	}
+
+	// finally, try to fetch from the network
+	ccn_charbuf *keyName = ccn_charbuf_create();
+	ccn_name_from_uri(keyName, name.c_str());
+	keyObjectPtr = lookupKeyInNetwork(keyName);
+	if (keyObjectPtr != CcnxKeyObject::Null) {
+		if (!keyObjectPtr->expired()) {
+			// store it to DB and cache
+			addKeyToKeyMap(keyObjectPtr);
+			addKeyToKeyDB(keyObjectPtr);
+			ccn_charbuf_destroy(&keyName);
+			return keyObjectPtr;
+		}
+	}
+
+	// could not find the key anywhere
+	// or the fetched key expired
+	ccn_charbuf_destroy(&keyName);
+	return CcnxKeyObject::Null;
+}
+
+CcnxKeyObjectPtr
+CcnxKeyObject::Null;
 
 CcnxKeyObject::CcnxKeyObject(const std::string keyName, const ccn_charbuf *key, time_t timestamp, int freshness): m_keyName(keyName), m_timestamp(timestamp), m_freshness(freshness), m_ccnPKey(NULL) {
 	m_key = ccn_charbuf_dup(key);

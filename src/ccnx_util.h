@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 #include <ccn/ccn.h>
+#include <ccn/uri.h>
 #include <ccn/signing.h>
 #ifdef __cplusplus
 }

@@ -56,6 +56,7 @@ private:
 	CcnxKeyObjectPtr lookupKeyInKeyMap(const std::string name);
 	CcnxKeyObjectPtr lookupKeyInKeyDB(const std::string name);
 	CcnxKeyObjectPtr lookupKeyInNetwork(const ccn_charbuf *keyName);
+	CcnxKeyObjectPtr lookupKey(const std::string name);
 
 private:
 	static SigVerifier *sigVerifier;
