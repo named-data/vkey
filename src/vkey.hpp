@@ -26,7 +26,7 @@
 #include <sqlite3.h>
 #include <ctime>
 #include <cstdlib>
-#include "ccnx_util.h"
+#include "ccnx_util.hpp"
 
 namespace VKey {
 

@@ -49,7 +49,7 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 		return false;
 	
 	ccn_charbuf *keyName = get_key_name(ccnb, pco);
-	std::string name = ccn_charbuf_as_string(keyName);
+	std::string name = charbuf_to_string(keyName);
 
 	CcnxKeyObjectPtr keyObjectPtr = lookupKey(name);
 	
@@ -367,7 +367,7 @@ CcnxOneTimeKeyFetcher::fetch(const ccn_charbuf *keyName) {
 	memcpy(key->buf, ptr, len);
 	key->length = len;
 	
-	std::string keyNameStr = ccn_charbuf_as_string(name);
+	std::string keyNameStr = charbuf_to_string(name);
 	CcnxKeyObjectPtr keyObjectPtr(new CcnxKeyObject(keyNameStr, key, timestamp, freshness));
 	ccn_destroy(&h);
 	ccn_charbuf_destroy(&result);

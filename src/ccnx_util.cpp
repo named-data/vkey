@@ -1,4 +1,4 @@
-#include "ccnx_util.h"
+#include "ccnx_util.hpp"
 
 ccn_charbuf *
 ccn_charbuf_dup(const ccn_charbuf *target) {
@@ -73,4 +73,23 @@ get_key_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	key_name->length = key_len;
 
 	return key_name;
+}
+
+std::string
+charbuf_to_string(ccn_charbuf *namebuf) {
+	ccn_indexbuf idx;
+	ccn_name_split(namebuf, &idx);
+
+	std::string namestr;
+	const unsigned char *comp = NULL;
+	size_t size = 0;
+	int i = 0;
+	while(ccn_name_comp_get(namebuf->buf, &idx, i, &comp, &size) == 0) {
+		namestr += "/";
+		std::string compstr((const char *)comp, (size_t) size);
+		namestr += compstr;
+		i++;
+	}
+	return namestr;
+
 }

@@ -42,8 +42,7 @@ def configure(conf):
 def build (bld):
     libvkey = bld.shlib (target=LIBNAME, 
                          features=['cxx', 'cxxshlib'],
-                         source = bld.path.ant_glob(['src/*.cpp',
-                                                     'src/*.c']),
+                         source = bld.path.ant_glob(['src/*.cpp']),
                          use = 'SSL SQLITE3 CCNX')
                          #use = 'BOOST BOOST_IOSTREAMS BOOST_THREAD SSL TINYXML CCNX')
 
