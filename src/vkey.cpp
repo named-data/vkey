@@ -258,8 +258,10 @@ SqliteKeyDBManager::insert(const CcnxKeyObjectPtr keyObjectPtr) {
 
 const CcnxKeyObjectPtr 
 SqliteKeyDBManager::query(const std::string keyName) {
+
 	if (!checkAndOpenDB())
 		return CcnxKeyObject::Null;
+
 
 	sqlite3_stmt *stmt;	
 	std::string zSql = "SELECT * FROM " + m_tableName + " WHERE name == ?;";
@@ -277,10 +279,14 @@ SqliteKeyDBManager::query(const std::string keyName) {
 		int freshness = (sqlite3_column_int(stmt, 3) - timestamp) / (60 * 60 *24);
 		CcnxKeyObjectPtr ptr (new CcnxKeyObject(keyName, key, timestamp, freshness));
 		ccn_charbuf_destroy(&key);
+		sqlite3_finalize(stmt);
+		sqlite3_close(m_db);
 
 		return ptr;
 	}
 
+	sqlite3_finalize(stmt);
+	sqlite3_close(m_db);
 	return CcnxKeyObject::Null;
 }
 
@@ -290,12 +296,12 @@ SqliteKeyDBManager::update() {
 		return false;
 
 	time_t now = time(NULL);
-
 	sqlite3_stmt *stmt;
 	std::string zSql = "DELETE FROM " + m_tableName + " WHERE valid_to < ?;";
-	sqlite3_prepare_v2(m_db, zSql.c_str(), -1, &stmt, NULL);
-	sqlite3_bind_int(stmt, 1, (int) now);
-	sqlite3_finalize(stmt);
+	assert(sqlite3_prepare_v2(m_db, zSql.c_str(), -1, &stmt, NULL) == SQLITE_OK);
+	assert(sqlite3_bind_int(stmt, 1, (int) now) == SQLITE_OK);
+	assert(sqlite3_step(stmt) == SQLITE_DONE);
+	assert(sqlite3_finalize(stmt) == SQLITE_OK);
 	sqlite3_close(m_db);
 	
 	return true;

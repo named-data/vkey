@@ -79,6 +79,7 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 	
 	sleep(2);
 
+	dbm->update();
 	const CcnxKeyObjectPtr nullPtr = dbm->query(ptr->getKeyName());
 	BOOST_CHECK_EQUAL(nullPtr, CcnxKeyObject::Null);
 
