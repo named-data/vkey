@@ -119,7 +119,7 @@ private:
 	std::string m_dbFile;
 	std::string m_tableName;
 	bool m_tableReady;
-	sqlite3 *db;
+	sqlite3 *m_db;
 };
 
 class CcnxOneTimeKeyFetcher {

@@ -18,6 +18,10 @@
  */
 
 #include "vkey.hpp"
+#include <cassert>
+#ifdef _DEBUG
+#include <iostream>
+#endif
 
 using namespace VKey;
 
@@ -179,6 +183,9 @@ CcnxKeyObject::getKey() {
 bool 
 CcnxKeyObject::expired() {
 	time_t now = time(NULL);
+#ifdef _DEBUG
+	std::cout << now << " > " << m_timestamp << " + " << m_freshness << std::endl;
+#endif
 	return (m_timestamp + m_freshness * 60 * 60 * 24 < now);
 }
 
@@ -212,14 +219,16 @@ SqliteKeyDBManager::SqliteKeyDBManager() {
 #endif 
 
 	m_tableReady = false;
-	sqlite3 *db;
-	if (sqlite3_open(m_dbFile.c_str(), &db) == SQLITE_OK) {
+	if (sqlite3_open(m_dbFile.c_str(), &m_db) == SQLITE_OK) {
 		std::string zSql = "create table if not exists " + m_tableName + "(name TEXT, key BLOB, timestamp INTEGER, valid_to INTEGER);";
-		int rc = sqlite3_exec(db, zSql.c_str(), NULL, NULL, NULL);
+		int rc = sqlite3_exec(m_db, zSql.c_str(), NULL, NULL, NULL);
 		if (rc == SQLITE_OK) {
 			m_tableReady = true;
 		}
-		sqlite3_close(db);
+		sqlite3_close(m_db);
+	}
+	else {
+		std::cerr<<"Failed to open sqlite3 database: " << m_dbFile<<std::endl;
 	}
 }
 
@@ -230,18 +239,18 @@ SqliteKeyDBManager::insert(const CcnxKeyObjectPtr keyObjectPtr) {
 
 	sqlite3_stmt *stmt;	
 	std::string zSql = "INSERT INTO " + m_tableName +" VALUES(?,?,?,?);";
-	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
+	assert(sqlite3_prepare_v2(m_db, zSql.c_str(), -1, &stmt, NULL) == SQLITE_OK);
 	std::string name = keyObjectPtr->getKeyName();
 	ccn_charbuf *key = keyObjectPtr->getKey();
-	sqlite3_bind_text(stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
-	sqlite3_bind_blob(stmt, 2, key->buf, key->length, SQLITE_STATIC);
+	assert(sqlite3_bind_text(stmt, 1, name.c_str(), name.length(), SQLITE_STATIC) == SQLITE_OK);
+	assert(sqlite3_bind_blob(stmt, 2, key->buf, key->length, SQLITE_STATIC) == SQLITE_OK);
 	int timestamp = keyObjectPtr->getTimestamp();
-	int valid_to = timestamp + keyObjectPtr->getTimestamp() * 60 * 60 * 24;
-	sqlite3_bind_int(stmt, 3, timestamp);
-	sqlite3_bind_int(stmt, 4, valid_to);
-	sqlite3_step(stmt);
+	int valid_to = timestamp + keyObjectPtr->getFreshness() * 60 * 60 * 24;
+	assert(sqlite3_bind_int(stmt, 3, timestamp) == SQLITE_OK);
+	assert(sqlite3_bind_int(stmt, 4, valid_to) == SQLITE_OK);
+	assert(sqlite3_step(stmt) ==SQLITE_DONE);
 	sqlite3_finalize(stmt);
-	sqlite3_close(db);
+	sqlite3_close(m_db);
 
 	ccn_charbuf_destroy(&key);
 	return true;
@@ -254,9 +263,10 @@ SqliteKeyDBManager::query(const std::string keyName) {
 
 	sqlite3_stmt *stmt;	
 	std::string zSql = "SELECT * FROM " + m_tableName + " WHERE name == ?;";
-	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
-	sqlite3_bind_text(stmt, 1, keyName.c_str(), keyName.length(), SQLITE_STATIC);
+	assert(sqlite3_prepare_v2(m_db, zSql.c_str(), -1, &stmt, NULL) == SQLITE_OK);
+	assert(sqlite3_bind_text(stmt, 1, keyName.c_str(), keyName.length(), SQLITE_STATIC) == SQLITE_OK);
 	if (sqlite3_step(stmt) == SQLITE_ROW) {
+
 		int size = sqlite3_column_bytes(stmt,1);
 		ccn_charbuf *key = ccn_charbuf_create();
 		ccn_charbuf_reserve(key, size);
@@ -283,10 +293,10 @@ SqliteKeyDBManager::update() {
 
 	sqlite3_stmt *stmt;
 	std::string zSql = "DELETE FROM " + m_tableName + " WHERE valid_to < ?;";
-	sqlite3_prepare_v2(db, zSql.c_str(), -1, &stmt, NULL);
+	sqlite3_prepare_v2(m_db, zSql.c_str(), -1, &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, (int) now);
 	sqlite3_finalize(stmt);
-	sqlite3_close(db);
+	sqlite3_close(m_db);
 	
 	return true;
 }
@@ -297,9 +307,10 @@ SqliteKeyDBManager::checkAndOpenDB() {
 	if (!m_tableReady)
 		return false;
 	
-	sqlite3 *db;
-	if (sqlite3_open(m_dbFile.c_str(), &db) != SQLITE_OK)
+	if (sqlite3_open(m_dbFile.c_str(), &m_db) != SQLITE_OK){
+		std::cerr<<"Failed to open sqlite3 database: " << m_dbFile<<std::endl;
 		return false;
+	}
 	
 	return true;
 }
