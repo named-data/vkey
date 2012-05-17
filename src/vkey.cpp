@@ -341,12 +341,14 @@ CcnxOneTimeKeyFetcher::fetch(const ccn_charbuf *keyName) {
 		return CcnxKeyObject::Null;
 	}
 
+/* TODO: resume afer test
 	// verify fetched key object
 	SigVerifier *verifier = SigVerifier::getInstance();
 	// the signature of the key object can not be verified
 	if(!verifier->verify(result->buf, &pco)) {
 		return CcnxKeyObject::Null;
 	}
+	*/
 	
 	time_t timestamp = 0;
 	if (get_timestamp_in_seconds(result, pco, &timestamp) < 0) {
