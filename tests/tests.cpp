@@ -88,6 +88,7 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 	ccn_charbuf_destroy(&dbKey);
 }
 
+/*
 BOOST_AUTO_TEST_CASE(KeyFetcher) {
 	ccn_charbuf *name = ccn_charbuf_create();
 	ccn_name_from_uri(name, "/ndn/root");
@@ -97,3 +98,4 @@ BOOST_AUTO_TEST_CASE(KeyFetcher) {
 	cout << ptr->getTimestamp()<< endl;
 	cout << ptr->getKeyName() << endl;
 }
+*/

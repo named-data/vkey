@@ -62,6 +62,7 @@ private:
 	static SigVerifier *sigVerifier;
 	KeyMap m_keyMap;
 	std::auto_ptr<KeyDBManager> m_dbManager;
+	CcnxKeyObjectPtr m_rootKeyObjectPtr;
 };
 
 class CcnxKeyObject{
