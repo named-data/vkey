@@ -14,7 +14,7 @@ using namespace boost;
 ccn_charbuf *readKey() {
 	unsigned char *keydata = NULL;
 	size_t kd_size, len;
-	FILE *fp = fopen("tests/.ccnx/.root.pem", "r");
+	FILE *fp = fopen("tests/keys/root.pem", "r");
 	BOOST_CHECK(fp != NULL);
 	X509 *cert = PEM_read_X509(fp, NULL, NULL, NULL);
 	fclose(fp);
@@ -38,9 +38,9 @@ BOOST_AUTO_TEST_CASE(KeyObjectTest)
 	now -= freshness * 60 * 60 * 24;
 	now += 1;
 
-	CcnxKeyObjectPtr ptr(new CcnxKeyObject("/ndn/test/key", key, now, freshness));	
+	CcnxKeyObjectPtr ptr(new CcnxKeyObject("/vkey/test/key", key, now, freshness));	
 	
-	BOOST_CHECK_EQUAL(ptr->getKeyName(), "/ndn/test/key");
+	BOOST_CHECK_EQUAL(ptr->getKeyName(), "/vkey/test/key");
 	BOOST_CHECK_EQUAL(ptr->getTimestamp(), now);
 	BOOST_CHECK_EQUAL(ptr->getFreshness(), freshness);
 	BOOST_CHECK(ptr->getCcnPKey() != NULL);
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 	now -= freshness * 60 * 60 * 24;
 	now += 1;
 
-	CcnxKeyObjectPtr ptr(new CcnxKeyObject("/ndn/test/key1", key, now, freshness));	
+	CcnxKeyObjectPtr ptr(new CcnxKeyObject("/vkey/test/key1", key, now, freshness));	
 
 	dbm->update();
 	dbm->insert(ptr);
@@ -88,14 +88,13 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 	ccn_charbuf_destroy(&dbKey);
 }
 
-/*
 BOOST_AUTO_TEST_CASE(KeyFetcher) {
+	//system("./tests/init.sh");
 	ccn_charbuf *name = ccn_charbuf_create();
-	ccn_name_from_uri(name, "/ndn/root");
+	ccn_name_from_uri(name, "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	const CcnxKeyObjectPtr ptr = CcnxOneTimeKeyFetcher::fetch(name);
 	BOOST_CHECK(ptr != CcnxKeyObject::Null);
 	BOOST_CHECK_EQUAL(ptr->getFreshness(), 1);
 	cout << ptr->getTimestamp()<< endl;
 	cout << ptr->getKeyName() << endl;
 }
-*/

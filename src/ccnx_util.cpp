@@ -65,12 +65,10 @@ get_key_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	const unsigned char *key_buf = NULL;
 	size_t key_len = 0;
 
-	ccn_ref_tagged_BLOB(CCN_DTAG_KeyName, ccnb, pco->offset[CCN_PCO_B_Key_Certificate_KeyName], pco->offset[CCN_PCO_E_Key_Certificate_KeyName], &key_buf, &key_len);
+	//ccn_ref_tagged_BLOB(CCN_DTAG_KeyName, ccnb, pco->offset[CCN_PCO_B_Key_Certificate_KeyName], pco->offset[CCN_PCO_E_Key_Certificate_KeyName], &key_buf, &key_len);
 
 	ccn_charbuf *key_name = ccn_charbuf_create();
-	ccn_charbuf_reserve(key_name, key_len);
-	memcpy(key_name->buf, key_buf, key_len);
-	key_name->length = key_len;
+	ccn_charbuf_append(key_name, ccnb + pco->offset[CCN_PCO_B_KeyName_Name], pco->offset[CCN_PCO_E_KeyName_Name] - pco->offset[CCN_PCO_B_KeyName_Name]);
 
 	return key_name;
 }
