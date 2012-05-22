@@ -90,16 +90,13 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 
 BOOST_AUTO_TEST_CASE(KeyFetcher) {
 	system("./tests/init.sh");
-	/*
 	ccn_charbuf *name = ccn_charbuf_create();
 	ccn_name_from_uri(name, "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	const CcnxKeyObjectPtr ptr = CcnxOneTimeKeyFetcher::fetch(name);
 	BOOST_CHECK(ptr != CcnxKeyObject::Null);
 	BOOST_CHECK_EQUAL(ptr->getFreshness(), 1);
-	cout << ptr->getTimestamp()<< endl;
-	cout << ptr->getKeyName() << endl;
+	BOOST_CHECK_EQUAL(ptr->getKeyName(), "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	ccn_charbuf_destroy(&name);
-	*/
 }
 
 BOOST_AUTO_TEST_CASE(Verifier) {
@@ -116,6 +113,9 @@ BOOST_AUTO_TEST_CASE(Verifier) {
 	ccn_get(h, name, NULL, 500, result, &pco, NULL, get_flags);
 
 	SigVerifier *verifier = SigVerifier::getInstance();
+	BOOST_CHECK(verifier->verify(result->buf, &pco));
+
+	// verify again, this time we'll be using cached keys
 	BOOST_CHECK(verifier->verify(result->buf, &pco));
 	ccn_charbuf_destroy(&name);
 	ccn_charbuf_destroy(&result);

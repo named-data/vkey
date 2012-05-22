@@ -81,6 +81,31 @@ public:
 	bool expired();
 	// ccn_pkey format for ccnx code to use
 	// client is responsible to free the memory
+	// DANGER: here we will return the pointer m_ccnPKey to clients
+	// we trust clients won't be modifying m_ccnPKey
+	// we decided to do so because returning a (bit-wise) copy of m_ccnPKey
+	// and use ccn_pubkey_free to free the copy seems to have
+	// a side effiect of chaing the original copy of m_ccnPKey
+	// somthing fishy is going on in ccn_pubkey_free
+	// or bit-wise copy of EVP_PKEY is wrong
+	// somebody suggested using the following code to dup EVP_PKEY
+	// we can try that if needed
+	/***********************
+	I ended up with the following code, which seems to works fine:
+
+	EVP_PKEY* pDupKey = EVP_PKEY_new();
+	RSA* pRSA = EVP_PKEY_get1_RSA(pKey);
+	RSA* pRSADupKey;
+	if( eKeyType == eKEY_PUBLIC ) // Determine the type of the "source" EVP_PKEY
+		  pRSADupKey = RSAPublicKey_dup(pRSA);
+		  else
+			    pRSADupKey = RSAPrivateKey_dup(pRSA);
+				RSA_free(pRSA);
+				EVP_PKEY_set1_RSA(pDupKey, pRSADupKey);
+				RSA_free(pRSADupKey);
+				return(pDupKey);
+	************************/
+			
 	ccn_pkey *getCcnPKey();
 
 private:

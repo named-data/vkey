@@ -61,7 +61,9 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	
 	ccn_charbuf *keyName = get_key_name(ccnb, pco);
 	std::string name = charbuf_to_string(keyName);
+#ifdef _DEBUG
 	std::cout << ">> Verifying: " << name << std::endl;
+#endif
 
 	CcnxKeyObjectPtr keyObjectPtr = lookupKey(name);
 	
@@ -71,7 +73,6 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 		if (pubkey != NULL) {
 			verified = (ccn_verify_signature((unsigned char *) ccnb, pco->offset[CCN_PCO_E], pco, pubkey) == 1);
 		}
-		ccn_pubkey_free(pubkey);
 		ccn_charbuf_destroy(&keyName);
 		return verified;
 	}
@@ -216,15 +217,8 @@ CcnxKeyObject::getCcnPKey() {
 		ccn_charbuf *temp = this->getKey();	
 		m_ccnPKey = ccn_d2i_pubkey(temp->buf, temp->length);
 		ccn_charbuf_destroy(&temp);
-		// failed to generate pubkey
-		if (m_ccnPKey == NULL) {
-			return NULL;
-		}
 	}
-	int keySize = ccn_pubkey_size(m_ccnPKey);
-	ccn_pkey *pubkey = (ccn_pkey *)calloc(1, keySize);
-	memcpy(pubkey, m_ccnPKey, keySize);
-	return pubkey;
+	return m_ccnPKey;
 }
 
 SqliteKeyDBManager::SqliteKeyDBManager() {
