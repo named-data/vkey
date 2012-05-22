@@ -89,7 +89,8 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 }
 
 BOOST_AUTO_TEST_CASE(KeyFetcher) {
-	//system("./tests/init.sh");
+	system("./tests/init.sh");
+	/*
 	ccn_charbuf *name = ccn_charbuf_create();
 	ccn_name_from_uri(name, "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	const CcnxKeyObjectPtr ptr = CcnxOneTimeKeyFetcher::fetch(name);
@@ -97,4 +98,26 @@ BOOST_AUTO_TEST_CASE(KeyFetcher) {
 	BOOST_CHECK_EQUAL(ptr->getFreshness(), 1);
 	cout << ptr->getTimestamp()<< endl;
 	cout << ptr->getKeyName() << endl;
+	ccn_charbuf_destroy(&name);
+	*/
+}
+
+BOOST_AUTO_TEST_CASE(Verifier) {
+	
+	ccn *h = ccn_create();
+	ccn_connect(h, NULL);
+	ccn_charbuf *name = ccn_charbuf_create();
+	ccn_name_from_uri(name, "/vkey/test/content/info");
+	ccn_charbuf *result = ccn_charbuf_create();
+	ccn_parsed_ContentObject pco = {0};
+	int get_flags = 0;
+	// no need for ccnd to verify key
+	get_flags |= CCN_GET_NOKEYWAIT;
+	ccn_get(h, name, NULL, 500, result, &pco, NULL, get_flags);
+
+	SigVerifier *verifier = SigVerifier::getInstance();
+	BOOST_CHECK(verifier->verify(result->buf, &pco));
+	ccn_charbuf_destroy(&name);
+	ccn_charbuf_destroy(&result);
+	ccn_destroy(&h);
 }
