@@ -92,6 +92,8 @@ private:
 	time_t m_timestamp;
 	// unit for freshness is day
 	int m_freshness;
+	// the ccn_pkey structure for ccn to use
+	ccn_pkey *m_ccnPKey;
 };
 
 class KeyDBManager {

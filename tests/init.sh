@@ -17,11 +17,4 @@ $MKEY -i test_node -a vkey -f ${KEY_DIR}/node.pem -k ${KEY_DIR}/site_keystore -u
 # publish something using test node key; here we use node key to sign itself
 $MKEY -i test_content -a vkey -f ${KEY_DIR}/node.pem -k ${KEY_DIR}/node_keystore -u ${PREFIX}/node -p ${PREFIX}/content -x 1
 
-# clear test key database
-if [ -z "$KEY_DB_FILE" ]
-then
-	DB_FILE="$HOME/.ccnx/.vkey.db"
-else
-	DB_FILE="$KEY_DB_FILE"
-fi
-sqlite3 $DB_FILE "drop table test_keys;"
+
