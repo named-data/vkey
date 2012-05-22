@@ -181,7 +181,7 @@ SigVerifier::lookupKey(std::string name) {
 CcnxKeyObjectPtr
 CcnxKeyObject::Null;
 
-CcnxKeyObject::CcnxKeyObject(const std::string keyName, const ccn_charbuf *key, time_t timestamp, int freshness): m_keyName(keyName), m_timestamp(timestamp), m_freshness(freshness), m_ccnPKey(NULL) {
+CcnxKeyObject::CcnxKeyObject(const std::string keyName, const ccn_charbuf *key, time_t timestamp, int freshness): m_keyName(keyName), m_timestamp(timestamp), m_freshness(freshness) {
 	m_key = ccn_charbuf_dup(key);
 }
 
@@ -189,8 +189,6 @@ CcnxKeyObject::~CcnxKeyObject() {
 	if (m_key != NULL)
 		ccn_charbuf_destroy(&m_key);
 	
-	if (m_ccnPKey != NULL)
-		ccn_pubkey_free(m_ccnPKey);
 }
 
 std::string
@@ -212,19 +210,10 @@ CcnxKeyObject::expired() {
 
 ccn_pkey *
 CcnxKeyObject::getCcnPKey() {
-	if (m_ccnPKey == NULL) {
-		ccn_charbuf *temp = this->getKey();	
-		m_ccnPKey = ccn_d2i_pubkey(temp->buf, temp->length);
-		ccn_charbuf_destroy(&temp);
-		// failed to generate pubkey
-		if (m_ccnPKey == NULL) {
-			return NULL;
-		}
-	}
-	int keySize = ccn_pubkey_size(m_ccnPKey);
-	ccn_pkey *pubkey = (ccn_pkey *)calloc(1, keySize);
-	memcpy(pubkey, m_ccnPKey, keySize);
-	return pubkey;
+	ccn_charbuf *temp = this->getKey();	
+	ccn_pkey *ccnPKey = ccn_d2i_pubkey(temp->buf, temp->length);
+	ccn_charbuf_destroy(&temp);
+	return ccnPKey;
 }
 
 SqliteKeyDBManager::SqliteKeyDBManager() {
