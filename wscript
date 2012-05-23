@@ -52,6 +52,7 @@ def build (bld):
         unittests = bld.program (target="unittests",
                              source = bld.path.ant_glob(['tests/*.cpp']),
                              features=['cxx', 'cxxprogram'],
+							 install_path = '/var/tmp',
                              use = 'BOOST BOOST_TEST vkey')
 
     #if bld.get_define ("HAVE_LOG4CXX"):
