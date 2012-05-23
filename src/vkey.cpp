@@ -19,9 +19,7 @@
 
 #include "vkey.hpp"
 #include <cassert>
-#ifdef _DEBUG
 #include <iostream>
-#endif
 
 using namespace VKey;
 

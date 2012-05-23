@@ -1,0 +1,21 @@
+Key Verification Library
+
+This library verifies the signature of a ccnx packet.
+It assumes a trust management system it already working (e.g. mkey).
+
+It manages a trusted key database and a trusted key cache for each application.
+If a key is not find in database and the cache, it's going to be fetched in 
+ccnx way.
+
+A root key is public knowledge. For simplicity, the code hard code the 
+root key for ndn test bed.
+
+To compile:
+./waf configure
+./waf
+
+If you want to run unit tests:
+1. start ccnd and ccnr
+2. ./waf configure --with-debug --with-test
+   ./waf
+3. build/unittests
