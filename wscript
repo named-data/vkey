@@ -40,6 +40,7 @@ def configure(conf):
         #conf.check_cfg(package='liblog4cxx', args=['--cflags', '--libs'], uselib_store='LOG4CXX', mandatory=True)
                    
 def build (bld):
+    bld.install_files('${PREFIX}/include', ['src/vkey.hpp'])
     libvkey = bld.shlib (target=LIBNAME, 
                          features=['cxx', 'cxxshlib'],
                          source = bld.path.ant_glob(['src/*.cpp']),
