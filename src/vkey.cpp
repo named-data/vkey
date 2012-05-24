@@ -20,6 +20,8 @@
 #include "vkey.hpp"
 #include <cassert>
 #include <iostream>
+#include <vector>
+#include <sstream>
 
 using namespace VKey;
 
@@ -58,12 +60,26 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 		return false;
 	
 	ccn_charbuf *keyName = get_key_name(ccnb, pco);
-	std::string name = charbuf_to_string(keyName);
+	std::string strKeyName = charbuf_to_string(keyName);
+	ccn_charbuf_destroy(&keyName);
+
+	ccn_charbuf *name = get_name(ccnb, pco);
+	std::string strName = charbuf_to_string(name);
+	ccn_charbuf_destroy(&name);
+
+	// for now, the signing chain must be strict
+	// i.e. key and namespace are bound together
+	// /ndn/keys/ucla.edu/hash can only sign 
+	// /ndn/keys/ucla.edu/sub-name-space
+	if (pco->type == CCN_CONTENT_KEY && (!isStrict(strName, strKeyName))) {
+		return false;
+	}
+
 #ifdef _DEBUG
-	std::cout << ">> Verifying: " << name << std::endl;
+	std::cout << ">> Verifying: " << strKeyName << std::endl;
 #endif
 
-	CcnxKeyObjectPtr keyObjectPtr = lookupKey(name);
+	CcnxKeyObjectPtr keyObjectPtr = lookupKey(strKeyName);
 	
 	if (keyObjectPtr != CcnxKeyObject::Null) {
 		bool verified = false;
@@ -71,11 +87,9 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 		if (pubkey != NULL) {
 			verified = (ccn_verify_signature((unsigned char *) ccnb, pco->offset[CCN_PCO_E], pco, pubkey) == 1);
 		}
-		ccn_charbuf_destroy(&keyName);
 		return verified;
 	}
 	
-	ccn_charbuf_destroy(&keyName);
 	return false;
 }
 
@@ -175,6 +189,46 @@ SigVerifier::lookupKey(std::string name) {
 	// or the fetched key expired
 	ccn_charbuf_destroy(&keyName);
 	return CcnxKeyObject::Null;
+}
+
+static std::vector<std::string> split(std::string &s, char delim) {
+	std::vector<std::string> comps;
+	std::stringstream ss(s);
+	std::string comp;
+	while(std::getline(ss, comp, delim)) {
+		comps.push_back(comp);
+	}
+	return comps;
+}
+
+bool
+SigVerifier::isStrict(std::string name, std::string keyName) {
+	// root is eligible to sign anything
+	std::string rootPrefix = root_key_name;
+	if (rootPrefix == keyName.substr(0, rootPrefix.length())){
+		return true;
+	}
+
+	std::vector<std::string> nv = split(name, '/');
+	std::vector<std::string> kv = split(keyName, '/');
+	// get rid of hash component
+	nv.pop_back();
+	kv.pop_back();
+
+	// keyName must be the prefix of name
+	// thus shorter
+	int ns = nv.size();
+	int ks = kv.size();
+	if (ks >= ns)
+		return false;
+	
+	for (int i = 0; i < ks; i++) {
+		if (nv[i] != kv[i]) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 CcnxKeyObjectPtr

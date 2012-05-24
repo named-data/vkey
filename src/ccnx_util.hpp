@@ -26,6 +26,9 @@ contain_key_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco);
 ccn_charbuf *
 get_key_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco);
 
+ccn_charbuf *
+get_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco);
+
 std::string
 charbuf_to_string(ccn_charbuf *namebuf);
 #endif // CCNX_UTIL_H

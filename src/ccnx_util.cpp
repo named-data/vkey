@@ -73,6 +73,18 @@ get_key_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 	return key_name;
 }
 
+ccn_charbuf *
+get_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
+	const unsigned char *buf = NULL;
+	size_t len = 0;
+
+	ccn_charbuf *name = ccn_charbuf_create();
+	ccn_charbuf_append(name, ccnb + pco->offset[CCN_PCO_B_Name], pco->offset[CCN_PCO_E_Name] - pco->offset[CCN_PCO_B_Name]);
+
+	return name;
+
+}
+
 std::string
 charbuf_to_string(ccn_charbuf *namebuf) {
 	ccn_indexbuf *idx = ccn_indexbuf_create();

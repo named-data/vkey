@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(Verifier) {
 	ccn *h = ccn_create();
 	ccn_connect(h, NULL);
 	ccn_charbuf *name = ccn_charbuf_create();
-	ccn_name_from_uri(name, "/vkey/test/content/info");
+	ccn_name_from_uri(name, "/vkey/test/site/node/content/info");
 	ccn_charbuf *result = ccn_charbuf_create();
 	ccn_parsed_ContentObject pco = {0};
 	int get_flags = 0;
