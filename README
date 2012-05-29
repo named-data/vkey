@@ -19,3 +19,5 @@ If you want to run unit tests:
 2. ./waf configure --with-debug --with-test
    ./waf
 3. build/unittests
+
+Please refer to vkey.hpp and tests/tests.cpp on how to use this library to verify signatures.
