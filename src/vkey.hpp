@@ -27,6 +27,8 @@
 #include <ctime>
 #include <cstdlib>
 #include "ccnx_util.hpp"
+#include <openssl/pem.h>
+#include <openssl/sha.h>
 
 namespace VKey {
 
@@ -44,6 +46,9 @@ public:
 	static SigVerifier *getInstance();	
 	bool verify(ccn_upcall_info *);
 	bool verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco);
+  bool isRootKeyHash(unsigned char *);
+  void setRootKeyPtrIfEmpty(CcnxKeyObjectPtr ptr);
+  CcnxKeyObjectPtr getRootKeyPtr();
 
 private:
 	SigVerifier();
@@ -64,6 +69,7 @@ private:
 	KeyMap m_keyMap;
 	std::auto_ptr<KeyDBManager> m_dbManager;
 	CcnxKeyObjectPtr m_rootKeyObjectPtr;
+  unsigned char m_rootKeyHash[SHA256_DIGEST_LENGTH];
 };
 
 class CcnxKeyObject{

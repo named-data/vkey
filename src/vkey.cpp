@@ -20,25 +20,15 @@
 #include "vkey.hpp"
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <sstream>
 
 using namespace VKey;
 
-static const int KEY_SIZE = 162;
-#ifdef _DEBUG
-static unsigned char root_key[KEY_SIZE] = {0x30,0x81,0x9f,0x30,0xd,0x6,0x9,0x2a,0x86,0x48,0x86,0xf7,0xd,0x1,0x1,0x1,0x5,0x0,0x3,0x81,0x8d,0x0,0x30,0x81,0x89,0x2,0x81,0x81,0x0,0xb6,0x1b,0x38,0x7a,0xc9,0x23,0x20,0x5c,0x38,0xec,0x85,0xfa,0xe2,0xb2,0xdd,0xd2,0x30,0x97,0x14,0x10,0xda,0x9e,0x82,0x4f,0x33,0x2,0xf2,0xd8,0xf7,0x3b,0xae,0x4c,0xcd,0x87,0xc1,0xe1,0x18,0x3,0x69,0x7c,0x94,0xbf,0xc8,0x55,0x27,0x8e,0xce,0xd1,0x67,0xce,0xdc,0x64,0x34,0x2b,0x10,0xa7,0xbf,0x2b,0x9d,0x24,0x29,0xd9,0x1f,0x9c,0xf5,0x3,0x79,0x98,0xfb,0x8d,0x83,0x4d,0x40,0x32,0x20,0x45,0xd3,0x56,0x45,0x5a,0xc,0xd4,0xd7,0x57,0xbc,0xce,0xbf,0x18,0xa1,0x96,0x44,0xd4,0x48,0x99,0xed,0x0,0xee,0x45,0x57,0xa6,0x96,0x34,0x5a,0x93,0xc3,0x57,0xa0,0x3a,0x15,0xa6,0x76,0xf5,0x70,0x3e,0xaa,0x95,0x0,0x57,0x45,0xbe,0xba,0xe,0x3b,0xb1,0x81,0xec,0xe5,0x59,0x2,0x3,0x1,0x0,0x1};
-
-const char *root_key_name = "/vkey/test/root";
-#else
-static unsigned char root_key[KEY_SIZE] = {0x30,0x81,0x9f,0x30,0xd,0x6,0x9,0x2a,0x86,0x48,0x86,0xf7,0xd,0x1,0x1,0x1,0x5,0x0,0x3,0x81,0x8d,0x0,0x30,0x81,0x89,0x2,0x81,0x81,0x0,0xb6,0x1b,0x38,0x7a,0xc9,0x23,0x20,0x5c,0x38,0xec,0x85,0xfa,0xe2,0xb2,0xdd,0xd2,0x30,0x97,0x14,0x10,0xda,0x9e,0x82,0x4f,0x33,0x2,0xf2,0xd8,0xf7,0x3b,0xae,0x4c,0xcd,0x87,0xc1,0xe1,0x18,0x3,0x69,0x7c,0x94,0xbf,0xc8,0x55,0x27,0x8e,0xce,0xd1,0x67,0xce,0xdc,0x64,0x34,0x2b,0x10,0xa7,0xbf,0x2b,0x9d,0x24,0x29,0xd9,0x1f,0x9c,0xf5,0x3,0x79,0x98,0xfb,0x8d,0x83,0x4d,0x40,0x32,0x20,0x45,0xd3,0x56,0x45,0x5a,0xc,0xd4,0xd7,0x57,0xbc,0xce,0xbf,0x18,0xa1,0x96,0x44,0xd4,0x48,0x99,0xed,0x0,0xee,0x45,0x57,0xa6,0x96,0x34,0x5a,0x93,0xc3,0x57,0xa0,0x3a,0x15,0xa6,0x76,0xf5,0x70,0x3e,0xaa,0x95,0x0,0x57,0x45,0xbe,0xba,0xe,0x3b,0xb1,0x81,0xec,0xe5,0x59,0x2,0x3,0x1,0x0,0x1};
-const char *root_key_name = "/ndn/keys/root";
-#endif
-
 
 SigVerifier *
 SigVerifier::sigVerifier = NULL;
-
 
 SigVerifier *
 SigVerifier::getInstance() {
@@ -94,15 +84,54 @@ SigVerifier::verify(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 }
 
 SigVerifier::SigVerifier(): m_dbManager(new SqliteKeyDBManager){
-	ccn_charbuf *rootKey = ccn_charbuf_create();
-	ccn_charbuf_reserve(rootKey, KEY_SIZE);
-	memcpy(rootKey->buf, root_key, KEY_SIZE);
-	rootKey->length = KEY_SIZE;
 
-	CcnxKeyObjectPtr ptr(new CcnxKeyObject(root_key_name, rootKey, time(NULL), 365));
-	m_rootKeyObjectPtr = ptr;
+  m_rootKeyObjectPtr = CcnxKeyObject::Null;
+
+  std::ifstream inData;
+  std::string rootKeyHashFile;
+
+#ifdef _DEBUG
+    rootKeyHashFile = "tests/.test_root_hash";
+#else
+    rootKeyHashFile = std::getenv("HOME");
+    rootKeyHashFile += "/.ccnx/.vkey_root_hash";
+#endif
+
+  try 
+  {
+    inData.open(rootKeyHashFile.c_str());
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+      inData >> m_rootKeyHash[i];
+    }
+    inData.close();
+  }
+  catch (std::ifstream::failure e)
+  {
+    std::cout << "Exception opening reading root key hash file: " << rootKeyHashFile << std::endl;
+  }
 }
 
+bool 
+SigVerifier::isRootKeyHash(unsigned char *md)
+{
+  return (memcmp(md, m_rootKeyHash, SHA256_DIGEST_LENGTH) == 0);
+}
+
+CcnxKeyObjectPtr
+SigVerifier::getRootKeyPtr()
+{
+  return m_rootKeyObjectPtr;
+}
+
+void
+SigVerifier::setRootKeyPtrIfEmpty(CcnxKeyObjectPtr ptr)
+{
+  if (m_rootKeyObjectPtr == CcnxKeyObject::Null)
+  {
+    m_rootKeyObjectPtr = ptr;
+  }
+}
 
 void
 SigVerifier::addKeyToKeyMap(const CcnxKeyObjectPtr keyObjectPtr) {
@@ -143,10 +172,6 @@ SigVerifier::lookupKeyInNetwork(const ccn_charbuf *keyName) {
 
 CcnxKeyObjectPtr
 SigVerifier::lookupKey(std::string name) {
-	std::string rootPrefix = root_key_name;
-	if (rootPrefix == name.substr(0, rootPrefix.length())){
-		return m_rootKeyObjectPtr;
-	}
 
 	// check keymap first
 	CcnxKeyObjectPtr keyObjectPtr = lookupKeyInKeyMap(name);
@@ -203,14 +228,16 @@ static std::vector<std::string> split(std::string &s, char delim) {
 
 bool
 SigVerifier::isStrict(std::string name, std::string keyName) {
-	// root is eligible to sign anything
-	std::string rootPrefix = root_key_name;
-	if (rootPrefix == keyName.substr(0, rootPrefix.length())){
-		return true;
-	}
 
 	std::vector<std::string> nv = split(name, '/');
 	std::vector<std::string> kv = split(keyName, '/');
+
+  if (kv.size() == 4)
+  {
+    // this is root key, can sign anything
+    return true;
+  }
+
 	// get rid of hash component
 	nv.pop_back();
 	kv.pop_back();
@@ -259,8 +286,15 @@ CcnxKeyObject::getKey() {
 
 bool 
 CcnxKeyObject::expired() {
+  /*
 	time_t now = time(NULL);
 	return (m_timestamp + m_freshness * 60 * 60 * 24 < now);
+  */
+  // where to put the valid time is a controversy topic
+  // currently, the valid time is supposedly in the meta info of the key
+  // anyhow, we'll ignore this part for now
+  // TODO: make expired() work
+  return false;
 }
 
 ccn_pkey *
@@ -412,14 +446,37 @@ CcnxOneTimeKeyFetcher::fetch(const ccn_charbuf *keyName) {
 	}
 
 	// verify fetched key object
-	SigVerifier *verifier = SigVerifier::getInstance();
-	// the signature of the key object can not be verified
-	if(!verifier->verify(result->buf, &pco)) {
+  bool checkRootHash = false;
+	std::string strKeyName = charbuf_to_string(keyName);
+	std::vector<std::string> v = split(strKeyName, '/');
+  
 #ifdef _DEBUG
-		std::cout <<"Could not verify fetched key object"<<std::endl;
+  std::cout << "Fetching key: " << strKeyName << std::endl;
 #endif
-		return CcnxKeyObject::Null;
-	}
+
+  SigVerifier *verifier = SigVerifier::getInstance();
+  if (v.size() > 4)
+  {
+#ifdef _DEBUG
+    std::cout << "v.size() is " << v.size() << std::endl;
+#endif
+    // the signature of the key object can not be verified
+    if(!verifier->verify(result->buf, &pco)) {
+#ifdef _DEBUG
+      std::cout <<"Could not verify fetched key object"<<std::endl;
+#endif
+      return CcnxKeyObject::Null;
+    }
+  }
+  else
+  {
+    // this is root key, /ndn/keys/rootdigest
+    // just check whether this is the root key we expect
+    checkRootHash = true;
+#ifdef _DEBUG
+    std::cout << "This is a root key" << std::endl;
+#endif
+  }
 	
 	time_t timestamp = 0;
 	if (get_timestamp_in_seconds(result, pco, &timestamp) < 0) {
@@ -436,6 +493,25 @@ CcnxOneTimeKeyFetcher::fetch(const ccn_charbuf *keyName) {
 	size_t len = result->length;
 	ccn_content_get_value(ptr, len, &pco, &ptr, &len);
 
+  if (checkRootHash)
+  {
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    SHA256_CTX context;
+    SHA256_Init(&context);
+    SHA256_Update(&context, ptr, len);
+    SHA256_Final(md, &context);
+
+    if (verifier->isRootKeyHash(md))
+    {
+      // this is not the right root key
+      return CcnxKeyObject::Null;
+    }
+    else if (verifier->getRootKeyPtr() != CcnxKeyObject::Null)
+    {
+      return verifier->getRootKeyPtr();
+    }
+  }
+
 	ccn_charbuf *key = ccn_charbuf_create();
 	ccn_charbuf_reserve(key, len);
 	memcpy(key->buf, ptr, len);
@@ -443,6 +519,12 @@ CcnxOneTimeKeyFetcher::fetch(const ccn_charbuf *keyName) {
 	
 	std::string keyNameStr = charbuf_to_string(name);
 	CcnxKeyObjectPtr keyObjectPtr(new CcnxKeyObject(keyNameStr, key, timestamp, freshness));
+
+  if (checkRootHash)
+  {
+    verifier->setRootKeyPtrIfEmpty(keyObjectPtr);
+  }
+
 	ccn_destroy(&h);
 	ccn_charbuf_destroy(&result);
 	ccn_charbuf_destroy(&key);

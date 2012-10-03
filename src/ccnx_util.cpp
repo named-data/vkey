@@ -86,7 +86,7 @@ get_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco) {
 }
 
 std::string
-charbuf_to_string(ccn_charbuf *namebuf) {
+charbuf_to_string(const ccn_charbuf *namebuf) {
 	ccn_indexbuf *idx = ccn_indexbuf_create();
 	ccn_name_split(namebuf, idx);
 

@@ -30,5 +30,5 @@ ccn_charbuf *
 get_name(const unsigned char *ccnb, ccn_parsed_ContentObject *pco);
 
 std::string
-charbuf_to_string(ccn_charbuf *namebuf);
+charbuf_to_string(const ccn_charbuf *namebuf);
 #endif // CCNX_UTIL_H

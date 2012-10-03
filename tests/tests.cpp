@@ -11,6 +11,7 @@ using namespace std;
 using namespace VKey;
 using namespace boost;
 
+/*
 ccn_charbuf *readKey() {
 	unsigned char *keydata = NULL;
 	size_t kd_size, len;
@@ -28,7 +29,9 @@ ccn_charbuf *readKey() {
 
 	return key;
 }
+*/
 
+/*
 BOOST_AUTO_TEST_CASE(KeyObjectTest)
 {
 
@@ -52,7 +55,9 @@ BOOST_AUTO_TEST_CASE(KeyObjectTest)
 	ccn_charbuf_destroy(&key);
 	key = NULL;
 }
+*/
 
+/*
 BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 {
 	KeyDBManager * dbm = new SqliteKeyDBManager();
@@ -87,15 +92,16 @@ BOOST_AUTO_TEST_CASE(Sqlite3Manager)
 	ccn_charbuf_destroy(&skey);
 	ccn_charbuf_destroy(&dbKey);
 }
+*/
 
 BOOST_AUTO_TEST_CASE(KeyFetcher) {
 	system("./tests/init.sh");
 	ccn_charbuf *name = ccn_charbuf_create();
-	ccn_name_from_uri(name, "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
+	ccn_name_from_uri(name, "/vkey/test/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	const CcnxKeyObjectPtr ptr = CcnxOneTimeKeyFetcher::fetch(name);
 	BOOST_CHECK(ptr != CcnxKeyObject::Null);
 	BOOST_CHECK_EQUAL(ptr->getFreshness(), 1);
-	BOOST_CHECK_EQUAL(ptr->getKeyName(), "/vkey/test/root/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
+	BOOST_CHECK_EQUAL(ptr->getKeyName(), "/vkey/test/WEapbsIN-BQAfKM4rjlxpkt7f6o=");
 	ccn_charbuf_destroy(&name);
 }
 
