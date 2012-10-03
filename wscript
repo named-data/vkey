@@ -38,6 +38,7 @@ def configure(conf):
 
     #if conf.options.log4cxx:
         #conf.check_cfg(package='liblog4cxx', args=['--cflags', '--libs'], uselib_store='LOG4CXX', mandatory=True)
+
                    
 def build (bld):
     bld.install_files('${PREFIX}/include', ['src/vkey.hpp'])
@@ -55,7 +56,4 @@ def build (bld):
 							 install_path = '/var/tmp',
                              use = 'BOOST BOOST_TEST vkey')
 
-    #if bld.get_define ("HAVE_LOG4CXX"):
-    #    libvkey.use += ' LOG4CXX'
-    #    unittests.use += ' LOG4CXX'
-
+    bld.exec_command('./init.sh')
